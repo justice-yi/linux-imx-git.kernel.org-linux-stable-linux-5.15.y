@@ -2,7 +2,6 @@
 #
 # Makefile for misc devices that really don't fit anywhere else.
 #
-obj-y=setction_add_dri.o
 obj-$(CONFIG_IBM_ASM)		+= ibmasm/
 obj-$(CONFIG_IBMVMC)		+= ibmvmc.o
 obj-$(CONFIG_AD525X_DPOT)	+= ad525x_dpot.o
