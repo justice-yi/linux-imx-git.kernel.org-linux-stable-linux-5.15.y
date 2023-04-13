@@ -21,11 +21,14 @@
 #include <linux/platform_device.h>
 #include <linux/pwm.h>
 #include <linux/slab.h>
+#include <linux/interrupt.h>
 
 #define MX3_PWMCR			0x00    /* PWM Control Register */
 #define MX3_PWMSR			0x04    /* PWM Status Register */
+#define MX3_PWMIR			0x8    /* PWM Interrupt Register */
 #define MX3_PWMSAR			0x0C    /* PWM Sample Register */
 #define MX3_PWMPR			0x10    /* PWM Period Register */
+
 
 #define MX3_PWMCR_FWM			GENMASK(27, 26)
 #define MX3_PWMCR_STOPEN		BIT(25)
@@ -91,9 +94,21 @@ struct pwm_imx27_chip {
 	 * value to return in that case.
 	 */
 	unsigned int duty_cycle;
+	unsigned int pwm_irq;
 };
 
 #define to_pwm_imx27_chip(chip)	container_of(chip, struct pwm_imx27_chip, chip)
+
+static void pwm_im27_irqenable_all(struct pwm_imx27_chip *imx)
+{
+	writel(0x7, imx->mmio_base + MX3_PWMIR);
+}
+
+static void pwm_im27_irqenable_fie(struct pwm_imx27_chip *imx)
+{
+	writel(0x0, imx->mmio_base + MX3_PWMIR);
+}
+
 
 static int pwm_imx27_clk_prepare_enable(struct pwm_imx27_chip *imx)
 {
@@ -288,6 +303,8 @@ static int pwm_imx27_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 	if (!state->enabled)
 		pwm_imx27_clk_disable_unprepare(imx);
 
+	pwm_im27_irqenable_fie(imx);
+
 	return 0;
 }
 
@@ -302,6 +319,13 @@ static const struct of_device_id pwm_imx27_dt_ids[] = {
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, pwm_imx27_dt_ids);
+
+irqreturn_t pwm_imx27_irq(int irq, void *data)
+{
+	//printk("pwm_imx27_irq\n");
+	
+	return IRQ_HANDLED;
+}
 
 static int pwm_imx27_probe(struct platform_device *pdev)
 {
@@ -339,6 +363,21 @@ static int pwm_imx27_probe(struct platform_device *pdev)
 	pwmcr = readl(imx->mmio_base + MX3_PWMCR);
 	if (!(pwmcr & MX3_PWMCR_EN))
 		pwm_imx27_clk_disable_unprepare(imx);
+
+	imx->pwm_irq = platform_get_irq(pdev, 0);
+	if (imx->pwm_irq < 0){
+		printk("[pwm-imx27] irq %d\n",imx->pwm_irq);
+		return imx->pwm_irq;
+
+	}
+	
+	if(ret = devm_request_threaded_irq(&pdev->dev,imx->pwm_irq , NULL,pwm_imx27_irq, 
+				IRQF_ONESHOT, pdev->name, imx))
+	{
+		printk("[pwm-imx27] : request irq err (%d)\n",ret);
+	}
+
+	
 
 	return devm_pwmchip_add(&pdev->dev, &imx->chip);
 }
