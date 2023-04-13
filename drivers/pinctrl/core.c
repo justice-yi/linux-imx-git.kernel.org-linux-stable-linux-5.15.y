@@ -1069,7 +1069,6 @@ static struct pinctrl *create_pinctrl(struct device *dev,
 		if (pctldev &&
 		    strcmp(dev_name(pctldev->dev), map->ctrl_dev_name))
 			continue;
-		printk("map name type %s %d\n",map->dev_name,map->type);
 		ret = add_setting(p, pctldev, map);
 		/*
 		 * At this point the adding of a setting may:
