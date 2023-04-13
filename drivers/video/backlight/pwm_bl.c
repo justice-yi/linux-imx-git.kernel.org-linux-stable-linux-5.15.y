@@ -53,11 +53,12 @@ static void pwm_backlight_power_on(struct pwm_bl_data *pb)
 		dev_err(pb->dev, "failed to enable power supply\n");
 
 	state.enabled = true;
-	pwm_apply_state(pb->pwm, &state);
+	//pwm_apply_state(pb->pwm, &state);
 
 	if (pb->post_pwm_on_delay)
 		msleep(pb->post_pwm_on_delay);
-
+	
+	pwm_apply_state(pb->pwm, &state);
 	if (pb->enable_gpio)
 		gpiod_set_value_cansleep(pb->enable_gpio, 1);
 
