@@ -327,7 +327,7 @@ static int pinmux_func_name_to_selector(struct pinctrl_dev *pctldev,
 	/* See if this pctldev has this function */
 	while (selector < nfuncs) {
 		const char *fname = ops->get_function_name(pctldev, selector);
-		printk("get func name %s\n",fname);
+		
 		if (!strcmp(function, fname))
 			return selector;
 

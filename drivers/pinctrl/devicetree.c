@@ -212,7 +212,7 @@ int pinctrl_dt_to_map(struct pinctrl *p, struct pinctrl_dev *pctldev)
 				"no of_node; not parsing pinctrl DT\n");
 		return 0;
 	}
-	printk("node name %s\n",np->name);
+	
 	/* We may store pointers to property names within the node */
 	of_node_get(np);
 
@@ -256,7 +256,7 @@ int pinctrl_dt_to_map(struct pinctrl *p, struct pinctrl_dev *pctldev)
 				ret = -EINVAL;
 				goto err;
 			}
-			printk("np_config name %s\n",np_config->name);
+			
 			/* Parse the node */
 			ret = dt_to_map_one_config(p, pctldev, statename,
 						   np_config);

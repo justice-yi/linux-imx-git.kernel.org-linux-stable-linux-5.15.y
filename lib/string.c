@@ -739,7 +739,7 @@ int match_string(const char * const *array, size_t n, const char *string)
 
 	for (index = 0; index < n; index++) {
 		item = array[index];
-		printk("match_string item %s\n",item);
+		
 		if (!item)
 			break;
 		if (!strcmp(item, string))
