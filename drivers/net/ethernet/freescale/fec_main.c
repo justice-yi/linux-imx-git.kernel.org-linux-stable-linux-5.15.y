@@ -3762,7 +3762,6 @@ fec_probe(struct platform_device *pdev)
 	char irq_name[8];
 	int irq_cnt;
 	struct fec_devinfo *dev_info;
-	printk("net fec_probe\n");
 	void __iomem *IMX6U_ENET1_TX_CLK;
 	void __iomem *IMX6U_ENET2_TX_CLK;
 
@@ -3988,7 +3987,7 @@ fec_probe(struct platform_device *pdev)
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
-	printk("net ok!\n");
+	
 	return 0;
 
 failed_register:
