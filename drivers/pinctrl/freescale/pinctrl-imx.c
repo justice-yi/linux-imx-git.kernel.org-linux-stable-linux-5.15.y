@@ -698,7 +698,6 @@ static bool imx_pinctrl_dt_is_flat_functions(struct device_node *np)
 {
 	struct device_node *function_np;
 	struct device_node *pinctrl_np;
-	printk("imx_pinctrl_dt_is_flat_functions node name :%s \n",np->full_name);
 	for_each_child_of_node(np, function_np) {
 		if (of_property_read_bool(function_np, "fsl,pins")) {
 			of_node_put(function_np);
@@ -706,7 +705,6 @@ static bool imx_pinctrl_dt_is_flat_functions(struct device_node *np)
 		}
 
 		for_each_child_of_node(function_np, pinctrl_np) {
-		printk("imx_pinctrl_dt_is_flat_functions pinctrl_np name :%s \n",pinctrl_np->full_name);
 			if (of_property_read_bool(pinctrl_np, "fsl,pins")) {
 				of_node_put(pinctrl_np);
 				of_node_put(function_np);
@@ -744,7 +742,6 @@ static int imx_pinctrl_probe_dt(struct platform_device *pdev,
 
 	for (i = 0; i < nfuncs; i++) {
 		struct function_desc *function;
-		printk("nfuncs %d",nfuncs);
 		function = devm_kzalloc(&pdev->dev, sizeof(*function),
 					GFP_KERNEL);
 		if (!function)
