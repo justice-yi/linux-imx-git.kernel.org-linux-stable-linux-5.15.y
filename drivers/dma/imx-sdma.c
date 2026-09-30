@@ -9,7 +9,7 @@
 // Based on code from Freescale:
 //
 // Copyright 2004-2009 Freescale Semiconductor, Inc. All Rights Reserved.
-
+#define DEBUG
 #include <linux/init.h>
 #include <linux/iopoll.h>
 #include <linux/module.h>

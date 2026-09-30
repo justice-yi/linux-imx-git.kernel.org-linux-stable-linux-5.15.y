@@ -20,7 +20,8 @@
 	};
 
 	memory {
-		reg = <0x80000000 0x20000000>;
+		reg = <0x80000000 0x10000000>;
+		lzys-ddd;
 	};
 
 	reserved-memory {
@@ -34,14 +35,57 @@
 			size = <0x8000000>;
 			linux,cma-default;
 		};
+		reserved: buffer@0 {
+         no-map;
+         reg = <0x90000000 0x10000000>;
+      	};
+
 	};
 
-	backlight {
+	backlight_display:backlight {
 		compatible = "pwm-backlight";
 		pwms = <&pwm1 0 5000000 0>;
 		brightness-levels = <0 4 8 16 32 64 128 255>;
 		default-brightness-level = <6>;
+
+		
 		status = "okay";
+	};
+
+	panel {
+		compatible = "atk,7inch";
+		backlight = <&backlight_display>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&display_out>;
+			};
+		};
+
+		display0: display {
+		bits-per-pixel = <24>;
+		bus-width = <24>;
+
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: timing0 {
+			clock-frequency = <51000000>;
+			hactive = <1024>;
+			vactive = <600>;
+			hfront-porch = <160>;
+			hback-porch = <140>;
+			hsync-len = <20>;
+			vback-porch = <20>;
+			vfront-porch = <12>;
+			vsync-len = <3>;
+
+			hsync-active = <0>;
+			vsync-active = <0>;
+			de-active = <1>;
+			pixelclk-active = <0>;
+			};
+		};
+	};
 	};
 
 	pxp_v4l2 {
@@ -247,9 +291,11 @@
 
 	port {
 		csi1_ep: endpoint {
+			bus-type = <1>;
 			remote-endpoint = <&ov5640_ep>;
 		};
 	};
+
 };
 
 &fec1 {
@@ -339,7 +385,7 @@
 		clock-names = "mclk";
 		wlf,shared-lrclk;
 	};
-
+/*	
 	ov5640: ov5640@3c {
 		compatible = "ovti,ov5640";
 		reg = <0x3c>;
@@ -351,16 +397,39 @@
 		pwn-gpios = <&gpio1 4 1>;
 		rst-gpios = <&gpio1 2 0>;
 		csi_id = <0>;
+		
 		mclk = <24000000>;
 		mclk_source = <0>;
 		status = "okay";
 		port {
 			ov5640_ep: endpoint {
 				remote-endpoint = <&csi1_ep>;
+				
 			};
 		};
 	};
+*/
+	ov5640: ov5640@3c {
+		compatible = "diy,ov5640";
+		reg = <0x3c>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_csi1
+			     &csi_pwn_rst>;
+		clocks = <&clks IMX6UL_CLK_CSI>;	     
+		clock-names = "csi_mclk";
+		reset-gpios = <&gpio1 2 GPIO_ACTIVE_LOW>;
+		pwdn-gpios = <&gpio1 4 GPIO_ACTIVE_HIGH>;
+		capture_controller = <&csi>;
+		status = "okay";
+		port {
+			ov5640_ep: endpoint {
+				remote-endpoint = <&csi1_ep>;
+			};
+		};
 
+		
+	};
+	
 	ft5426:ft5426@38{
 		compatible = "edt,edt-ft5x06";
 		reg = <0x38>;
@@ -395,6 +464,7 @@
 
 		pinctrl_csi1: csi1grp {
 			fsl,pins = <
+				//0x1b008 :100kouΩ pull up/pull/  
 				MX6UL_PAD_CSI_MCLK__CSI_MCLK		0x1b008
 				MX6UL_PAD_CSI_PIXCLK__CSI_PIXCLK	0x1b008
 				MX6UL_PAD_CSI_VSYNC__CSI_VSYNC		0x1b008
@@ -444,7 +514,7 @@
 
 		pinctrl_flexcan1: flexcan1grp{
 			fsl,pins = <
-				MX6UL_PAD_UART3_RTS_B__FLEXCAN1_RX	0x1b020
+				//MX6UL_PAD_UART3_RTS_B__FLEXCAN1_RX	0x1b020
 				MX6UL_PAD_UART3_CTS_B__FLEXCAN1_TX	0x1b020
 			>;
 		};
@@ -453,7 +523,7 @@
 		pinctrl_i2c1: i2c1grp {
 			fsl,pins = <
 				MX6UL_PAD_UART4_TX_DATA__I2C1_SCL 0x4001b8b0
-				MX6UL_PAD_UART4_RX_DATA__I2C1_SDA 0x4001b8b0
+				//MX6UL_PAD_UART4_RX_DATA__I2C1_SDA 0x4001b8b0
 			>;
 		};
 
@@ -673,10 +743,11 @@
 		};
 		pinctrl_ecspi3:icm20608{
 			fsl,pins = <
-				MX6UL_PAD_UART2_TX_DATA__GPIO1_IO20 0x10b0
+				MX6UL_PAD_UART2_TX_DATA__ECSPI3_SS0 0x100b0  
 				MX6UL_PAD_UART2_RX_DATA__ECSPI3_SCLK 0x10b1
 				MX6UL_PAD_UART2_RTS_B__ECSPI3_MISO 0x10b1
-				MX6UL_PAD_UART2_CTS_B__ECSPI3_MOSI 0x10b1
+				MX6UL_PAD_UART2_CTS_B__ECSPI3_MOSI 0x100b0
+				//MX6UL_PAD_UART4_RX_DATA__GPIO1_IO29 0x10b1
 			>;
 		};
 	};
@@ -739,30 +810,12 @@
 	display = <&display0>;
 	status = "okay";
 
-	display0: display {
-		bits-per-pixel = <24>;
-		bus-width = <24>;
-
-		display-timings {
-			native-mode = <&timing0>;
-			timing0: timing0 {
-			clock-frequency = <51000000>;
-			hactive = <1024>;
-			vactive = <600>;
-			hfront-porch = <160>;
-			hback-porch = <140>;
-			hsync-len = <20>;
-			vback-porch = <20>;
-			vfront-porch = <12>;
-			vsync-len = <3>;
-
-			hsync-active = <0>;
-			vsync-active = <0>;
-			de-active = <1>;
-			pixelclk-active = <0>;
-			};
+	port {
+		display_out: endpoint {
+			remote-endpoint = <&panel_in>;
 		};
 	};
+	
 };
 
 &pwm1 {
@@ -770,6 +823,41 @@
 	pinctrl-0 = <&pinctrl_pwm1>;
 	status = "okay";
 };
+&pwm2 {
+
+	status = "okay";
+};
+&pwm3 {
+
+	status = "okay";
+};
+&pwm4 {
+
+	status = "okay";
+};
+&pwm5 {
+
+	status = "okay";
+};
+&pwm6 {
+
+	status = "okay";
+};
+&pwm7 {
+
+	status = "okay";
+};
+&pwm8 {
+
+	status = "okay";
+};
+
+
+
+
+
+
+
 
 &pxp {
 	status = "okay";
@@ -872,18 +960,28 @@
 	fsl,wdog_b;
 };
 
+&rngb{
+	status = "okay";	
+};
+
 &ecspi3{
+
 	fsl,spi-num-chipselects = <1>;
-	cs-gpio = <&gpio1 20 GPIO_ACTIVE_LOW>;
+	cs-gpios = <&gpio1 29 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi3>;
 	status = "okay";
-
-	spidev: icm20608@0{
-		#address-cells = <1>;
-		#size-cells = <1>;
-		compatible = "alientek,icm20608";
-		spi-max-frequency = <8000000>;
+	spi-slave;
+	
+	spidev1:slave@0{
+		compatible = "spi-slave-system-control";
+		//compatible = "spidev,spidev";
+		
+		spi-max-frequency = <2000000>;
 		reg = <0>;
 	};
+
+
 };
+
+

@@ -228,14 +228,14 @@ static void imx_rngc_cleanup(struct hwrng *rng)
 
 	imx_rngc_irq_mask_clear(rngc);
 }
+static struct imx_rngc *rngc;
+static int ret;
+static int irq;
+static u32 ver_id;
+static u8	rng_type;
 
 static int imx_rngc_probe(struct platform_device *pdev)
 {
-	struct imx_rngc *rngc;
-	int ret;
-	int irq;
-	u32 ver_id;
-	u8  rng_type;
 
 	rngc = devm_kzalloc(&pdev->dev, sizeof(*rngc), GFP_KERNEL);
 	if (!rngc)

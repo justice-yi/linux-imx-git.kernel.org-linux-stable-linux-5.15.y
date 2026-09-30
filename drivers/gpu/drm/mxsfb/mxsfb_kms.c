@@ -491,6 +491,7 @@ static void mxsfb_plane_primary_atomic_update(struct drm_plane *plane,
 	dma_addr_t paddr;
 
 	paddr = mxsfb_get_fb_paddr(plane);
+	printk("paddr %x\n",paddr);
 	if (paddr)
 		writel(paddr, mxsfb->base + mxsfb->devdata->next_buf);
 }
@@ -505,8 +506,9 @@ static void mxsfb_plane_overlay_atomic_update(struct drm_plane *plane,
 									    plane);
 	dma_addr_t paddr;
 	u32 ctrl;
+	paddr = drm_fb_cma_get_gem_addr(plane->state->fb,new_pstate,0);
 
-	paddr = mxsfb_get_fb_paddr(plane);
+	//paddr = mxsfb_get_fb_paddr(plane);
 	if (!paddr) {
 		writel(0, mxsfb->base + LCDC_AS_CTRL);
 		return;
@@ -561,8 +563,8 @@ static void mxsfb_plane_overlay_atomic_update(struct drm_plane *plane,
 static bool mxsfb_format_mod_supported(struct drm_plane *plane,
 				       uint32_t format,
 				       uint64_t modifier)
-{
-	return modifier == DRM_FORMAT_MOD_LINEAR;
+{	
+	return 1;
 }
 
 static const struct drm_plane_helper_funcs mxsfb_plane_primary_helper_funcs = {

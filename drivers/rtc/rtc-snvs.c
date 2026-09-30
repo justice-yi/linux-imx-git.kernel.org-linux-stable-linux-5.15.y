@@ -40,6 +40,7 @@ struct snvs_rtc_data {
 	struct clk *clk;
 };
 
+
 /* Read 64 bit timer register, which could be in inconsistent state */
 static u64 rtc_read_lpsrt(struct snvs_rtc_data *data)
 {

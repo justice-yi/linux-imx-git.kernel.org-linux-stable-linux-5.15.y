@@ -97,6 +97,7 @@ static int spi_slave_time_probe(struct spi_device *spi)
 	init_completion(&priv->finished);
 	priv->xfer.tx_buf = priv->buf;
 	priv->xfer.len = sizeof(priv->buf);
+	priv->xfer.speed_hz = 2000000;
 
 	ret = spi_slave_time_submit(priv);
 	if (ret)

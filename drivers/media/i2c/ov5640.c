@@ -2261,13 +2261,13 @@ static int ov5640_try_fmt_internal(struct v4l2_subdev *sd,
 	struct ov5640_dev *sensor = to_ov5640_dev(sd);
 	const struct ov5640_mode_info *mode;
 	int i;
-
+	printk("ov5640_try_fmt_internal(%d %d )\n",fmt->width,fmt->height);
 	mode = ov5640_find_mode(sensor, fr, fmt->width, fmt->height, true);
 	if (!mode)
 		return -EINVAL;
 	fmt->width = mode->hact;
 	fmt->height = mode->vact;
-
+	printk("ov5640_try_fmt_internal2(%d %d )\n",fmt->width,fmt->height);
 	if (new_mode)
 		*new_mode = mode;
 
@@ -2338,7 +2338,7 @@ static int ov5640_set_framefmt(struct ov5640_dev *sensor,
 	int ret = 0;
 	bool is_jpeg = false;
 	u8 fmt, mux;
-
+	printk("ov5640_set_framefmt(0x%x)\n",format->code);
 	switch (format->code) {
 	case MEDIA_BUS_FMT_UYVY8_1X16:
 	case MEDIA_BUS_FMT_UYVY8_2X8:

@@ -82,7 +82,7 @@ struct spidev_data {
 static LIST_HEAD(device_list);
 static DEFINE_MUTEX(device_list_lock);
 
-static unsigned bufsiz = 4096;
+static unsigned bufsiz = 10*1024*1024;
 module_param(bufsiz, uint, S_IRUGO);
 MODULE_PARM_DESC(bufsiz, "data bytes in biggest supported SPI message");
 
@@ -278,6 +278,7 @@ static int spidev_message(struct spidev_data *spidev,
 		k_tmp->word_delay.unit = SPI_DELAY_UNIT_USECS;
 		if (!k_tmp->speed_hz)
 			k_tmp->speed_hz = spidev->speed_hz;
+
 #ifdef VERBOSE
 		dev_dbg(&spidev->spi->dev,
 			"  xfer len %u %s%s%s%dbits %u usec %u usec %uHz\n",
@@ -330,9 +331,12 @@ spidev_get_ioc_message(unsigned int cmd, struct spi_ioc_transfer __user *u_ioc,
 		return ERR_PTR(-ENOTTY);
 
 	tmp = _IOC_SIZE(cmd);
+
+	
 	if ((tmp % sizeof(struct spi_ioc_transfer)) != 0)
 		return ERR_PTR(-EINVAL);
 	*n_ioc = tmp / sizeof(struct spi_ioc_transfer);
+
 	if (*n_ioc == 0)
 		return NULL;
 
@@ -682,6 +686,7 @@ static const struct spi_device_id spidev_spi_ids[] = {
 	{ .name = "m53cpld" },
 	{ .name = "spi-petra" },
 	{ .name = "spi-authenta" },
+	{ .name = "lzy" },
 	{},
 };
 MODULE_DEVICE_TABLE(spi, spidev_spi_ids);
@@ -696,6 +701,7 @@ static const struct of_device_id spidev_dt_ids[] = {
 	{ .compatible = "menlo,m53cpld" },
 	{ .compatible = "cisco,spi-petra" },
 	{ .compatible = "micron,spi-authenta" },
+	{ .compatible = "lzy,lzy" },	
 	{},
 };
 MODULE_DEVICE_TABLE(of, spidev_dt_ids);
@@ -745,7 +751,7 @@ static int spidev_probe(struct spi_device *spi)
 	struct spidev_data	*spidev;
 	int			status;
 	unsigned long		minor;
-
+	
 	/*
 	 * spidev should never be referenced in DT without a specific
 	 * compatible string, it is a Linux implementation thing
@@ -754,7 +760,7 @@ static int spidev_probe(struct spi_device *spi)
 	WARN(spi->dev.of_node &&
 	     of_device_is_compatible(spi->dev.of_node, "spidev"),
 	     "%pOF: buggy DT: spidev listed directly in DT\n", spi->dev.of_node);
-
+	
 	spidev_probe_acpi(spi);
 
 	/* Allocate driver data */

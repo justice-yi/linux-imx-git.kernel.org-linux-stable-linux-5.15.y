@@ -291,10 +291,13 @@ int drm_mode_getencoder(struct drm_device *dev, void *data,
 
 	drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
 	crtc = drm_encoder_get_crtc(encoder);
-	if (crtc && drm_lease_held(file_priv, crtc->base.id))
+	if (crtc && drm_lease_held(file_priv, crtc->base.id)){
 		enc_resp->crtc_id = crtc->base.id;
-	else
+		printk("drm_lease_held\n");
+	}else{
 		enc_resp->crtc_id = 0;
+		printk("no drm_lease_held\n");
+	}
 	drm_modeset_unlock(&dev->mode_config.connection_mutex);
 
 	enc_resp->encoder_type = encoder->encoder_type;

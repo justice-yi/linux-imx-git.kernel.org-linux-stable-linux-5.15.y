@@ -744,12 +744,19 @@ int drm_plane_check_pixel_format(struct drm_plane *plane,
 		if (format == plane->format_types[i])
 			break;
 	}
-	if (i == plane->format_count)
+	if (i == plane->format_count){
+		printk("drm_plane_check_pixel_format not find format\n");
 		return -EINVAL;
+	}
 
 	if (plane->funcs->format_mod_supported) {
-		if (!plane->funcs->format_mod_supported(plane, format, modifier))
-			return -EINVAL;
+		printk("format_mod_supported modifier1 0x%llx\n",modifier);
+		if (!plane->funcs->format_mod_supported(plane, format, modifier)){
+			printk("format_mod_supported modifier2 0x%llx\n",modifier);
+
+			return -EINVAL;			
+
+			}	
 	} else {
 		if (!plane->modifier_count)
 			return 0;

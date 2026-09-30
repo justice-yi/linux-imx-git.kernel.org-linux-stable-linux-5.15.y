@@ -109,6 +109,7 @@ int spi_slave_system_control_submit(struct spi_slave_system_control_priv *priv)
 
 	return ret;
 }
+char txcmd[2] = {0x63,0x35};
 
 static int spi_slave_system_control_probe(struct spi_device *spi)
 {
@@ -122,7 +123,9 @@ static int spi_slave_system_control_probe(struct spi_device *spi)
 	priv->spi = spi;
 	init_completion(&priv->finished);
 	priv->xfer.rx_buf = &priv->cmd;
+	priv->xfer.tx_buf = txcmd;
 	priv->xfer.len = sizeof(priv->cmd);
+	priv->xfer.speed_hz = 1000000;
 
 	ret = spi_slave_system_control_submit(priv);
 	if (ret)

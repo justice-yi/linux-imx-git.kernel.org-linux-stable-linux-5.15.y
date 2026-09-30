@@ -354,7 +354,7 @@ static int spi_match_device(struct device *dev, struct device_driver *drv)
 
 	if (sdrv->id_table)
 		return !!spi_match_id(sdrv->id_table, spi);
-
+	
 	return strcmp(spi->modalias, drv->name) == 0;
 }
 
@@ -926,6 +926,7 @@ int spi_map_buf(struct spi_controller *ctlr, struct device *dev,
 {
 	const bool vmalloced_buf = is_vmalloc_addr(buf);
 	unsigned int max_seg_size = dma_get_max_seg_size(dev);
+	
 #ifdef CONFIG_HIGHMEM
 	const bool kmap_buf = ((unsigned long)buf >= PKMAP_BASE &&
 				(unsigned long)buf < (PKMAP_BASE +
@@ -944,13 +945,15 @@ int spi_map_buf(struct spi_controller *ctlr, struct device *dev,
 	if (vmalloced_buf || kmap_buf) {
 		desc_len = min_t(int, max_seg_size, PAGE_SIZE);
 		sgs = DIV_ROUND_UP(len + offset_in_page(buf), desc_len);
+		
 	} else if (virt_addr_valid(buf)) {
 		desc_len = min_t(int, max_seg_size, ctlr->max_dma_len);
 		sgs = DIV_ROUND_UP(len, desc_len);
+
 	} else {
 		return -EINVAL;
 	}
-
+	
 	ret = sg_alloc_table(sgt, sgs, GFP_KERNEL);
 	if (ret != 0)
 		return ret;
@@ -1450,6 +1453,7 @@ EXPORT_SYMBOL_GPL(spi_finalize_current_transfer);
 
 static void spi_idle_runtime_pm(struct spi_controller *ctlr)
 {
+	
 	if (ctlr->auto_runtime_pm) {
 		pm_runtime_mark_last_busy(ctlr->dev.parent);
 		pm_runtime_put_autosuspend(ctlr->dev.parent);
@@ -1476,30 +1480,25 @@ static void __spi_pump_messages(struct spi_controller *ctlr, bool in_kthread)
 	bool was_busy = false;
 	unsigned long flags;
 	int ret;
-
 	/* Lock queue */
 	spin_lock_irqsave(&ctlr->queue_lock, flags);
-
 	/* Make sure we are not already running a message */
 	if (ctlr->cur_msg) {
 		spin_unlock_irqrestore(&ctlr->queue_lock, flags);
 		return;
 	}
-
 	/* If another context is idling the device then defer */
 	if (ctlr->idling) {
 		kthread_queue_work(ctlr->kworker, &ctlr->pump_messages);
 		spin_unlock_irqrestore(&ctlr->queue_lock, flags);
 		return;
 	}
-
 	/* Check if the queue is idle */
 	if (list_empty(&ctlr->queue) || !ctlr->running) {
 		if (!ctlr->busy) {
 			spin_unlock_irqrestore(&ctlr->queue_lock, flags);
 			return;
 		}
-
 		/* Defer any non-atomic teardown to the thread */
 		if (!in_kthread) {
 			if (!ctlr->dummy_rx && !ctlr->dummy_tx &&
@@ -1518,7 +1517,6 @@ static void __spi_pump_messages(struct spi_controller *ctlr, bool in_kthread)
 		ctlr->busy = false;
 		ctlr->idling = true;
 		spin_unlock_irqrestore(&ctlr->queue_lock, flags);
-
 		kfree(ctlr->dummy_rx);
 		ctlr->dummy_rx = NULL;
 		kfree(ctlr->dummy_tx);
@@ -1529,13 +1527,11 @@ static void __spi_pump_messages(struct spi_controller *ctlr, bool in_kthread)
 				"failed to unprepare transfer hardware\n");
 		spi_idle_runtime_pm(ctlr);
 		trace_spi_controller_idle(ctlr);
-
 		spin_lock_irqsave(&ctlr->queue_lock, flags);
 		ctlr->idling = false;
 		spin_unlock_irqrestore(&ctlr->queue_lock, flags);
 		return;
 	}
-
 	/* Extract head of queue */
 	msg = list_first_entry(&ctlr->queue, struct spi_message, queue);
 	ctlr->cur_msg = msg;
@@ -1546,7 +1542,6 @@ static void __spi_pump_messages(struct spi_controller *ctlr, bool in_kthread)
 	else
 		ctlr->busy = true;
 	spin_unlock_irqrestore(&ctlr->queue_lock, flags);
-
 	mutex_lock(&ctlr->io_mutex);
 
 	if (!was_busy && ctlr->auto_runtime_pm) {
@@ -1632,7 +1627,7 @@ static void spi_pump_messages(struct kthread_work *work)
 {
 	struct spi_controller *ctlr =
 		container_of(work, struct spi_controller, pump_messages);
-
+	
 	__spi_pump_messages(ctlr, true);
 }
 
@@ -1948,6 +1943,7 @@ static int __spi_queued_transfer(struct spi_device *spi,
 	msg->status = -EINPROGRESS;
 
 	list_add_tail(&msg->queue, &ctlr->queue);
+	
 	if (!ctlr->busy && need_pump)
 		kthread_queue_work(ctlr->kworker, &ctlr->pump_messages);
 
@@ -3043,7 +3039,6 @@ int spi_controller_suspend(struct spi_controller *ctlr)
 	/* Basically no-ops for non-queued controllers */
 	if (!ctlr->queued)
 		return 0;
-
 	ret = spi_stop_queue(ctlr);
 	if (ret)
 		dev_err(&ctlr->dev, "queue stop failed\n");
@@ -3663,7 +3658,7 @@ static int __spi_validate(struct spi_device *spi, struct spi_message *message)
 				return -EINVAL;
 		}
 	}
-
+	
 	/**
 	 * Set transfer bits_per_word and max speed as spi device default if
 	 * it is not set for this transfer.
@@ -3687,7 +3682,7 @@ static int __spi_validate(struct spi_device *spi, struct spi_message *message)
 
 		if (__spi_validate_bits_per_word(ctlr, xfer->bits_per_word))
 			return -EINVAL;
-
+		
 		/*
 		 * SPI transfer length should be multiple of SPI word size
 		 * where SPI word size should be power-of-two multiple
@@ -3702,11 +3697,11 @@ static int __spi_validate(struct spi_device *spi, struct spi_message *message)
 		/* No partial transfers accepted */
 		if (xfer->len % w_size)
 			return -EINVAL;
-
+		
 		if (xfer->speed_hz && ctlr->min_speed_hz &&
 		    xfer->speed_hz < ctlr->min_speed_hz)
 			return -EINVAL;
-
+		
 		if (xfer->tx_buf && !xfer->tx_nbits)
 			xfer->tx_nbits = SPI_NBITS_SINGLE;
 		if (xfer->rx_buf && !xfer->rx_nbits)
@@ -3718,35 +3713,47 @@ static int __spi_validate(struct spi_device *spi, struct spi_message *message)
 		if (xfer->tx_buf) {
 			if (spi->mode & SPI_NO_TX)
 				return -EINVAL;
+			
 			if (xfer->tx_nbits != SPI_NBITS_SINGLE &&
 				xfer->tx_nbits != SPI_NBITS_DUAL &&
 				xfer->tx_nbits != SPI_NBITS_QUAD)
 				return -EINVAL;
+			
 			if ((xfer->tx_nbits == SPI_NBITS_DUAL) &&
 				!(spi->mode & (SPI_TX_DUAL | SPI_TX_QUAD)))
 				return -EINVAL;
+			
 			if ((xfer->tx_nbits == SPI_NBITS_QUAD) &&
 				!(spi->mode & SPI_TX_QUAD))
 				return -EINVAL;
+			
 		}
 		/* check transfer rx_nbits */
 		if (xfer->rx_buf) {
 			if (spi->mode & SPI_NO_RX)
+				{
+				
 				return -EINVAL;
+				}
+			
 			if (xfer->rx_nbits != SPI_NBITS_SINGLE &&
 				xfer->rx_nbits != SPI_NBITS_DUAL &&
 				xfer->rx_nbits != SPI_NBITS_QUAD)
 				return -EINVAL;
+			
 			if ((xfer->rx_nbits == SPI_NBITS_DUAL) &&
 				!(spi->mode & (SPI_RX_DUAL | SPI_RX_QUAD)))
 				return -EINVAL;
+			
 			if ((xfer->rx_nbits == SPI_NBITS_QUAD) &&
 				!(spi->mode & SPI_RX_QUAD))
 				return -EINVAL;
+			
 		}
 
 		if (_spi_xfer_word_delay_update(xfer, spi))
 			return -EINVAL;
+		
 	}
 
 	message->status = -EINPROGRESS;
@@ -3911,7 +3918,7 @@ static int __spi_sync(struct spi_device *spi, struct spi_message *message)
 	status = __spi_validate(spi, message);
 	if (status != 0)
 		return status;
-
+	
 	message->complete = spi_complete;
 	message->context = &done;
 	message->spi = spi;
@@ -3949,6 +3956,7 @@ static int __spi_sync(struct spi_device *spi, struct spi_message *message)
 		}
 
 		wait_for_completion(&done);
+		
 		status = message->status;
 	}
 	message->context = NULL;
@@ -3981,6 +3989,7 @@ int spi_sync(struct spi_device *spi, struct spi_message *message)
 	int ret;
 
 	mutex_lock(&spi->controller->bus_lock_mutex);
+	
 	ret = __spi_sync(spi, message);
 	mutex_unlock(&spi->controller->bus_lock_mutex);
 

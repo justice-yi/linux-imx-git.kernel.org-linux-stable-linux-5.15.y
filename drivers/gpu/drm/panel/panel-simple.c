@@ -689,7 +689,7 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc,
 	panel->supply = devm_regulator_get(dev, "power");
 	if (IS_ERR(panel->supply))
 		return PTR_ERR(panel->supply);
-
+	
 	panel->enable_gpio = devm_gpiod_get_optional(dev, "enable",
 						     GPIOD_OUT_LOW);
 	if (IS_ERR(panel->enable_gpio)) {
@@ -698,7 +698,7 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc,
 			dev_err(dev, "failed to request GPIO: %d\n", err);
 		return err;
 	}
-
+	
 	err = of_drm_get_panel_orientation(dev->of_node, &panel->orientation);
 	if (err) {
 		dev_err(dev, "%pOF: failed to get orientation %d\n", dev->of_node, err);
@@ -794,11 +794,12 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc,
 	pm_runtime_use_autosuspend(dev);
 
 	drm_panel_init(&panel->base, dev, &panel_simple_funcs, connector_type);
-
+	printk("[panel] drm_panel_init\n");
 	err = drm_panel_of_backlight(&panel->base);
+	printk("err(%d)\n",err);
 	if (err)
 		goto disable_pm_runtime;
-
+	printk("[panel] drm_panel_of_backlight\n");
 	if (!panel->base.backlight && panel->aux) {
 		pm_runtime_get_sync(dev);
 		err = drm_panel_dp_aux_backlight(&panel->base, panel->aux);
@@ -807,9 +808,9 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc,
 		if (err)
 			goto disable_pm_runtime;
 	}
-
+	printk("[panel] disable_pm_runtime\n");
 	drm_panel_add(&panel->base);
-
+	printk("[panel] drm_panel_add\n");
 	return 0;
 
 disable_pm_runtime:
@@ -4465,6 +4466,33 @@ static const struct panel_desc arm_rtsm = {
 	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
 };
 
+
+static const struct drm_display_mode atk7inch_mode = {
+	.clock = 51200,
+	.hdisplay = 1024,
+	.hsync_start = 1024 + 160,
+	.hsync_end = 1024 + 160 + 20,
+	.htotal = 1024 + 260 + 20 + 140,
+	.vdisplay = 600,
+	.vsync_start = 600 + 12,
+	.vsync_end = 600 + 12 + 3,
+	.vtotal = 600 + 12 + 3 + 20,
+};
+
+static const struct panel_desc atk7inch = {
+	
+	.modes = &atk7inch_mode,
+	.num_modes = 1,
+	.bpc = 8,
+	.size = {
+		.width = 95,
+		.height = 54,
+	},
+	.connector_type = DRM_MODE_CONNECTOR_DPI,
+	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
+	.bus_flags = DRM_BUS_FLAG_DE_HIGH | DRM_BUS_FLAG_PIXDATA_DRIVE_POSEDGE,
+};
+
 static const struct of_device_id platform_of_match[] = {
 	{
 		.compatible = "ampire,am-1280800n3tzqw-t00h",
@@ -4902,6 +4930,9 @@ static const struct of_device_id platform_of_match[] = {
 		.compatible = "yes-optoelectronics,ytc700tlag-05-201c",
 		.data = &yes_optoelectronics_ytc700tlag_05_201c,
 	}, {
+		.compatible = "atk,7inch",
+		.data = &atk7inch,
+	},{
 		/* Must be the last entry */
 		.compatible = "panel-dpi",
 		.data = &panel_dpi,

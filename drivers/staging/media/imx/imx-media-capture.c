@@ -678,6 +678,7 @@ static int capture_validate_fmt(struct capture_priv *priv)
 	fmt_src.pad = priv->src_sd_pad;
 	fmt_src.which = V4L2_SUBDEV_FORMAT_ACTIVE;
 	ret = v4l2_subdev_call(priv->src_sd, pad, get_fmt, NULL, &fmt_src);
+	printk("capture_validate_fmt(%d)\n",ret);
 	if (ret)
 		return ret;
 
@@ -688,15 +689,19 @@ static int capture_validate_fmt(struct capture_priv *priv)
 	 * derived directly from the compose rectangle size, and will thus
 	 * always match if the compose rectangle matches.
 	 */
+	 printk("capture_validate_fmt1(%d %d %d %d)\n",priv->vdev.compose.width,priv->vdev.compose.height
+	 	,fmt_src.format.width,fmt_src.format.height);
 	if (priv->vdev.compose.width != fmt_src.format.width ||
 	    priv->vdev.compose.height != fmt_src.format.height)
-		return -EPIPE;
+		//sreturn -EPIPE;
+	printk("capture_validate_fmt2\n",ret);
 
 	/*
 	 * Verify that the media bus code is compatible with the pixel format
 	 * set on the video node.
 	 */
 	cc = capture_find_format(fmt_src.format.code, 0);
+	printk("capture_validate_fmt3\n",ret);
 	if (!cc || priv->vdev.cc->cs != cc->cs)
 		return -EPIPE;
 

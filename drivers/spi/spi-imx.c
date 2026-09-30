@@ -147,7 +147,7 @@ static inline int is_imx53_ecspi(struct spi_imx_data *d)
 static void spi_imx_buf_rx_##type(struct spi_imx_data *spi_imx)		\
 {									\
 	unsigned int val = readl(spi_imx->base + MXC_CSPIRXDATA);	\
-									\
+	printk("val %x\t",val);						\
 	if (spi_imx->rx_buf) {						\
 		*(type *)spi_imx->rx_buf = val;				\
 		spi_imx->rx_buf += sizeof(type);			\
@@ -167,7 +167,7 @@ static void spi_imx_buf_tx_##type(struct spi_imx_data *spi_imx)		\
 	}								\
 									\
 	spi_imx->count -= sizeof(type);					\
-									\
+	printk("spi_imx_buf_tx %x count %d type %d config %x\n",val,spi_imx->count,sizeof(type),readl(spi_imx->base+0x8));									\
 	writel(val, spi_imx->base + MXC_CSPITXDATA);			\
 }
 
@@ -349,6 +349,7 @@ static void spi_imx_buf_tx_swap_u32(struct spi_imx_data *spi_imx)
 	}
 
 	spi_imx->count -= sizeof(u32);
+	printk("spi_imx_buf_tx_swap_u32\n");
 #ifdef __LITTLE_ENDIAN
 	bytes_per_word = spi_imx_bytes_per_word(spi_imx->bits_per_word);
 
@@ -384,7 +385,7 @@ static void spi_imx_buf_tx_swap(struct spi_imx_data *spi_imx)
 		}
 		spi_imx->count--;
 	}
-
+	printk("spi_imx_buf_tx_swap\n");
 	writel(val, spi_imx->base + MXC_CSPITXDATA);
 }
 
@@ -424,7 +425,7 @@ static void mx53_ecspi_tx_slave(struct spi_imx_data *spi_imx)
 	}
 
 	spi_imx->count -= n_bytes;
-
+	printk("mx53_ecspi_tx_slave\n");
 	writel(val, spi_imx->base + MXC_CSPITXDATA);
 }
 
@@ -660,7 +661,10 @@ static void mx51_setup_wml(struct spi_imx_data *spi_imx)
 
 static int mx51_ecspi_rx_available(struct spi_imx_data *spi_imx)
 {
-	return readl(spi_imx->base + MX51_ECSPI_STAT) & MX51_ECSPI_STAT_RR;
+	
+	int state = readl(spi_imx->base + MX51_ECSPI_STAT) & MX51_ECSPI_STAT_RR;
+	printk("mx51_ecspi_rx_available %d\n",state);
+	return state;
 }
 
 static void mx51_ecspi_reset(struct spi_imx_data *spi_imx)
@@ -1092,6 +1096,7 @@ static void spi_imx_push(struct spi_imx_data *spi_imx)
 	 * current burst is 0. This only applies when bits_per_word is a
 	 * multiple of 8.
 	 */
+	 printk("spi_imx_push remainder %d dynamic_burst %d count %d\n",spi_imx->remainder,spi_imx->dynamic_burst,spi_imx->count);
 	if (!spi_imx->remainder) {
 		if (spi_imx->dynamic_burst) {
 
@@ -1106,9 +1111,10 @@ static void spi_imx_push(struct spi_imx_data *spi_imx)
 			spi_imx->remainder = burst_len;
 		} else {
 			spi_imx->remainder = spi_imx_bytes_per_word(spi_imx->bits_per_word);
+			
 		}
 	}
-
+	
 	while (spi_imx->txfifo < spi_imx->devtype_data->fifo_size) {
 		if (!spi_imx->count)
 			break;
@@ -1126,17 +1132,18 @@ static void spi_imx_push(struct spi_imx_data *spi_imx)
 static irqreturn_t spi_imx_isr(int irq, void *dev_id)
 {
 	struct spi_imx_data *spi_imx = dev_id;
-
+	
 	while (spi_imx->txfifo &&
 	       spi_imx->devtype_data->rx_available(spi_imx)) {
 		spi_imx->rx(spi_imx);
 		spi_imx->txfifo--;
 	}
-
+	printk("spi_imx_isr2 spi_imx->count: %d",spi_imx->count);
 	if (spi_imx->count) {
 		spi_imx_push(spi_imx);
 		return IRQ_HANDLED;
 	}
+	//printk("spi_imx_isr3 spi_imx->txfifo: %d",spi_imx->txfifo);
 
 	if (spi_imx->txfifo) {
 		/* No data left to push, but still waiting for rx data,
@@ -1146,6 +1153,7 @@ static irqreturn_t spi_imx_isr(int irq, void *dev_id)
 				spi_imx, MXC_INT_RR);
 		return IRQ_HANDLED;
 	}
+	//printk("spi_imx_isr4 spi_imx->txfifo: %d",spi_imx->txfifo);
 
 	spi_imx->devtype_data->intctrl(spi_imx, 0);
 	complete(&spi_imx->xfer_done);
@@ -1236,6 +1244,7 @@ static int spi_imx_setupxfer(struct spi_device *spi,
 		if (spi_imx->bits_per_word <= 8) {
 			spi_imx->rx = spi_imx_buf_rx_u8;
 			spi_imx->tx = spi_imx_buf_tx_u8;
+			printk("dma reg %x\n",readl(spi_imx->base + 0x14));
 		} else if (spi_imx->bits_per_word <= 16) {
 			spi_imx->rx = spi_imx_buf_rx_u16;
 			spi_imx->tx = spi_imx_buf_tx_u16;
@@ -1281,7 +1290,6 @@ static int spi_imx_sdma_init(struct device *dev, struct spi_imx_data *spi_imx,
 			     struct spi_master *master)
 {
 	int ret;
-
 	spi_imx->wml = spi_imx->devtype_data->fifo_size / 2;
 
 	/* Prepare for TX DMA: */
@@ -1354,7 +1362,6 @@ static int spi_imx_dma_transfer(struct spi_imx_data *spi_imx,
 	struct scatterlist *last_sg = sg_last(rx->sgl, rx->nents);
 	unsigned int bytes_per_word, i;
 	int ret;
-
 	/* Get the right burst length from the last sg to ensure no tail data */
 	bytes_per_word = spi_imx_bytes_per_word(transfer->bits_per_word);
 	for (i = spi_imx->devtype_data->fifo_size / 2; i > 0; i--) {
@@ -1445,7 +1452,6 @@ static int spi_imx_pio_transfer(struct spi_device *spi,
 	struct spi_imx_data *spi_imx = spi_master_get_devdata(spi->master);
 	unsigned long transfer_timeout;
 	unsigned long timeout;
-
 	spi_imx->tx_buf = transfer->tx_buf;
 	spi_imx->rx_buf = transfer->rx_buf;
 	spi_imx->count = transfer->len;
@@ -1476,7 +1482,7 @@ static int spi_imx_pio_transfer_slave(struct spi_device *spi,
 {
 	struct spi_imx_data *spi_imx = spi_master_get_devdata(spi->master);
 	int ret = transfer->len;
-
+	printk("spi_imx_pio_transfer_slave\n");
 	if (is_imx53_ecspi(spi_imx) &&
 	    transfer->len > MX53_MAX_TRANSFER_BYTES) {
 		dev_err(&spi->dev, "Transaction too big, max size is %d bytes\n",
@@ -1600,7 +1606,8 @@ static int spi_imx_probe(struct platform_device *pdev)
 			of_device_get_match_data(&pdev->dev);
 	bool slave_mode;
 	u32 val;
-
+	struct of_device_id * id = of_match_device(spi_imx_dt_ids,&pdev->dev);
+	
 	slave_mode = devtype_data->has_slavemode &&
 			of_property_read_bool(np, "spi-slave");
 	if (slave_mode)

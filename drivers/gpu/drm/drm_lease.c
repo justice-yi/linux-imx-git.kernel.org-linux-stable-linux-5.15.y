@@ -88,8 +88,10 @@ _drm_find_lessee(struct drm_master *master, int lessee_id)
 static int _drm_lease_held_master(struct drm_master *master, int id)
 {
 	lockdep_assert_held(&master->dev->mode_config.idr_mutex);
-	if (master->lessor)
+	if (master->lessor){
+		printk("_drm_lease_held_master\n");
 		return idr_find(&master->leases, id) != NULL;
+	}
 	return true;
 }
 
